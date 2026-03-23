@@ -16,9 +16,23 @@ import {
 const AddCoachModal = ({ visible, onClose }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSendInvitation = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^(?:0|\+44)(?:\s*\d){9,10}$/;
+
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      return;
+    }
+
+    if (!phoneRegex.test(phone.trim())) {
+      Alert.alert("Invalid Phone Number", "Please enter a valid UK phone number (e.g., +44... or 0...).");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/user`, {
@@ -27,6 +41,7 @@ const AddCoachModal = ({ visible, onClose }) => {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
+          phone: phone.trim(),
           userType: "COACH",
         }),
       });
@@ -40,6 +55,7 @@ const AddCoachModal = ({ visible, onClose }) => {
       Alert.alert("Success", "Coach added successfully.");
       setName("");
       setEmail("");
+      setPhone("");
       onClose();
     } catch (error) {
       Alert.alert("Error", error.message);
@@ -85,15 +101,25 @@ const AddCoachModal = ({ visible, onClose }) => {
                 onChangeText={setEmail}
               />
 
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+44 7123 456789"
+                placeholderTextColor="#666"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+              />
+
               <TouchableOpacity
                 style={[
                   styles.btnWrapper,
-                  (!name.trim() || !email.trim() || isLoading) && {
+                  (!name.trim() || !email.trim() || !phone.trim() || isLoading) && {
                     opacity: 0.5,
                   },
                 ]}
                 onPress={handleSendInvitation}
-                disabled={!name.trim() || !email.trim() || isLoading}
+                disabled={!name.trim() || !email.trim() || !phone.trim() || isLoading}
               >
                 <LinearGradient
                   colors={["#20E070", "#0DBF58"]}

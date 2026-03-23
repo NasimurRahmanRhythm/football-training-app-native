@@ -1,7 +1,10 @@
 import AddCoachModal from "@/components/add-coach-modal";
 import AddPlayerModal from "@/components/add-player-modal";
 import PlayerProfile from "@/components/player-profile";
-import { API_BASE_URL } from "@/constants/ApplicationConstants";
+import {
+  API_BASE_URL,
+  SUPER_ADMIN_EMAIL,
+} from "@/constants/ApplicationConstants";
 import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -10,10 +13,12 @@ import { useState } from "react";
 
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -27,6 +32,38 @@ export default function HomeScreen() {
   const [isAddCoachVisible, setIsAddCoachVisible] = useState(false);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isAddOrgVisible, setIsAddOrgVisible] = useState(false);
+  const [orgName, setOrgName] = useState("");
+  const [isAddingOrg, setIsAddingOrg] = useState(false);
+
+  const handleAddOrganization = async () => {
+    if (!orgName.trim()) return;
+    setIsAddingOrg(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/organization`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ organization: orgName.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to add organization");
+      }
+
+      Alert.alert("Success", "Organization added successfully!");
+      setOrgName("");
+      setIsAddOrgVisible(false);
+    } catch (error) {
+      Alert.alert("Error", error.message);
+    } finally {
+      setIsAddingOrg(false);
+    }
+  };
+
   const handleLogout = () => {
     setIsLogoutModalVisible(true);
   };
@@ -94,6 +131,21 @@ export default function HomeScreen() {
         </View>
         <Ionicons name="chevron-forward" size={20} color="#444" />
       </TouchableOpacity>
+
+      {user?.email === SUPER_ADMIN_EMAIL && (
+        <TouchableOpacity
+          style={styles.mainButton}
+          onPress={() => setIsAddOrgVisible(true)}
+        >
+          <View style={styles.buttonContent}>
+            <Text style={styles.buttonTitle}>Add an Organization</Text>
+            <Text style={styles.buttonDescription}>
+              Register a new organization
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#444" />
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity
         style={styles.mainButton}
@@ -171,6 +223,62 @@ export default function HomeScreen() {
         visible={isAddCoachVisible}
         onClose={() => setIsAddCoachVisible(false)}
       />
+
+      {/* Add Organization Modal */}
+      <Modal
+        visible={isAddOrgVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsAddOrgVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmHeader}>
+              <Text style={styles.confirmTitle}>Add Organization</Text>
+            </View>
+            <View style={{ width: "100%", marginBottom: 20 }}>
+              <TextInput
+                style={{
+                  backgroundColor: "#222",
+                  color: "#fff",
+                  padding: 12,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: "#333",
+                  fontSize: 16,
+                }}
+                placeholder="Organization Name"
+                placeholderTextColor="#666"
+                value={orgName}
+                onChangeText={setOrgName}
+              />
+            </View>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                onPress={() => setIsAddOrgVisible(false)}
+                style={[styles.confirmBtn, styles.cancelBtn]}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleAddOrganization}
+                disabled={!orgName.trim() || isAddingOrg}
+                style={[
+                  styles.confirmBtn,
+                  { backgroundColor: "#20E070" },
+                  (!orgName.trim() || isAddingOrg) && { opacity: 0.5 },
+                ]}
+              >
+                {isAddingOrg ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.cancelBtnText}>Add</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Logout Confirmation Modal */}
       <Modal

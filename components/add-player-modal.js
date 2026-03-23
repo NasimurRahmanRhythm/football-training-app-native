@@ -17,8 +17,6 @@ import {
 
 const POSITIONS = ["Goalkeeper", "Defender", "Midfielder", "Forward"];
 
-const ORGANIZATIONS = ["Barnet FC Academy", "SpiderOne Bees Academy"];
-
 const AddPlayerModal = ({
   visible,
   onClose,
@@ -28,12 +26,34 @@ const AddPlayerModal = ({
 }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [dob, setDob] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [position, setPosition] = useState("");
   const [showPositionPicker, setShowPositionPicker] = useState(false);
   const [organization, setOrganization] = useState("");
   const [showOrganizationPicker, setShowOrganizationPicker] = useState(false);
+  const [organizationsList, setOrganizationsList] = useState([]);
+
+  useEffect(() => {
+    const fetchOrganizations = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/organization`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setOrganizationsList(data.organizations || []);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching organizations:", error);
+      }
+    };
+
+    if (visible) {
+      fetchOrganizations();
+    }
+  }, [visible]);
 
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -43,6 +63,7 @@ const AddPlayerModal = ({
     if (isEditing && playerData) {
       setName(playerData.name || "");
       setEmail(playerData.email || "");
+      setPhone(playerData.phone || "");
       if (playerData.personalInfo) {
         setDob(
           playerData.personalInfo.dateOfBirth
@@ -84,6 +105,22 @@ const AddPlayerModal = ({
   };
 
   const handleSendInvitation = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^(?:0|\+44)(?:\s*\d){9,10}$/;
+
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert("Invalid Email", "Please enter a valid email address.");
+      return;
+    }
+
+    if (!phoneRegex.test(phone.trim())) {
+      Alert.alert(
+        "Invalid Phone Number",
+        "Please enter a valid UK phone number (e.g., +44... or 0...).",
+      );
+      return;
+    }
+
     setIsLoading(true);
     try {
       const personalInfo = {
@@ -104,6 +141,7 @@ const AddPlayerModal = ({
           body: JSON.stringify({
             name: name.trim(),
             email: email.trim(),
+            phone: phone.trim(),
             userType: "PLAYER",
             isVerified,
             personalInfo,
@@ -128,6 +166,7 @@ const AddPlayerModal = ({
 
       setName("");
       setEmail("");
+      setPhone("");
       setDob(new Date());
       setPosition("");
       setOrganization("");
@@ -184,6 +223,16 @@ const AddPlayerModal = ({
                 autoCapitalize="none"
                 value={email}
                 onChangeText={setEmail}
+              />
+
+              <Text style={styles.label}>Phone Number</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="+44 7123 456789"
+                placeholderTextColor="#666"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
               />
 
               <Text style={styles.sectionTitle}>Personal Info</Text>
@@ -260,12 +309,17 @@ const AddPlayerModal = ({
               <TouchableOpacity
                 style={[
                   styles.btnWrapper,
-                  (!name.trim() || !email.trim() || isLoading) && {
+                  (!name.trim() ||
+                    !email.trim() ||
+                    !phone.trim() ||
+                    isLoading) && {
                     opacity: 0.5,
                   },
                 ]}
                 onPress={handleSendInvitation}
-                disabled={!name.trim() || !email.trim() || isLoading}
+                disabled={
+                  !name.trim() || !email.trim() || !phone.trim() || isLoading
+                }
               >
                 <LinearGradient
                   colors={["#20E070", "#0DBF58"]}
@@ -350,26 +404,34 @@ const AddPlayerModal = ({
             <View style={styles.dropdownHeader}>
               <Text style={styles.dropdownTitle}>Select Organization</Text>
             </View>
-            {ORGANIZATIONS.map((org) => (
-              <TouchableOpacity
-                key={org}
-                style={[
-                  styles.dropdownOption,
-                  organization === org && styles.dropdownOptionSelected,
-                ]}
-                onPress={() => handleSelectOrganization(org)}
-              >
-                <Text
+            {organizationsList.length === 0 ? (
+              <Text style={{ color: "#888", padding: 20, textAlign: "center" }}>
+                No organizations found.
+              </Text>
+            ) : (
+              organizationsList.map((org) => (
+                <TouchableOpacity
+                  key={org}
                   style={[
-                    styles.dropdownOptionText,
-                    organization === org && styles.dropdownOptionTextSelected,
+                    styles.dropdownOption,
+                    organization === org && styles.dropdownOptionSelected,
                   ]}
+                  onPress={() => handleSelectOrganization(org)}
                 >
-                  {org}
-                </Text>
-                {organization === org && <View style={styles.selectedMarker} />}
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.dropdownOptionText,
+                      organization === org && styles.dropdownOptionTextSelected,
+                    ]}
+                  >
+                    {org}
+                  </Text>
+                  {organization === org && (
+                    <View style={styles.selectedMarker} />
+                  )}
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
