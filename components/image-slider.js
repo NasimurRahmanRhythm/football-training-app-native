@@ -3,6 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Dimensions,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,7 +12,7 @@ import {
 } from "react-native";
 import LoginButton from "./login-button";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const SLIDE_INTERVAL = 5000;
 
 const ImageSlider = ({ data = [], onLoginPress, onRegisterPress }) => {
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
+    flex: 1,
   },
   gradient: {
     ...StyleSheet.absoluteFillObject,
@@ -156,7 +158,7 @@ const styles = StyleSheet.create({
   // ── Slide text ──────────────────────────────────────────────────────────────
   textOverlay: {
     position: "absolute",
-    bottom: 200,
+    bottom: 250,
     left: 0,
     right: 0,
     paddingHorizontal: 28,
@@ -188,10 +190,11 @@ const styles = StyleSheet.create({
 
   buttonWrapper: {
     position: "absolute",
-    bottom: 52,
+    bottom: 80,
     left: 24,
     right: 24,
     zIndex: 20,
+    marginBottom: 12,
   },
 });
 
