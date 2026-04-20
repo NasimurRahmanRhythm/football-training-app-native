@@ -35,6 +35,8 @@ export default function HomeScreen() {
   const [isAddOrgVisible, setIsAddOrgVisible] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [isAddingOrg, setIsAddingOrg] = useState(false);
+  const [isDeleteAccountModalVisible, setIsDeleteAccountModalVisible] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleAddOrganization = async () => {
     if (!orgName.trim()) return;
@@ -90,6 +92,36 @@ export default function HomeScreen() {
       setIsLogoutModalVisible(false);
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (!user?.id && !user?._id) return;
+    const userId = user.id || user._id;
+
+    setIsDeletingAccount(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${user?.token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete account");
+      }
+
+      Alert.alert("Success", "Your account has been deleted successfully.");
+      await logout();
+      setIsDeleteAccountModalVisible(false);
+    } catch (error) {
+      console.error("Delete Account Error:", error);
+      Alert.alert("Error", error.message);
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -186,9 +218,19 @@ export default function HomeScreen() {
       {user?.userType === "COACH" && (
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Football Training</Text>
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {user?.email !== SUPER_ADMIN_EMAIL && (
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={() => setIsDeleteAccountModalVisible(true)}
+              >
+                <Ionicons name="trash-outline" size={18} color="#ff4444" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.headerIconBtn} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={18} color="#ff4444" />
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -321,6 +363,47 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        visible={isDeleteAccountModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsDeleteAccountModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={styles.confirmHeader}>
+              <View style={styles.warningIconContainer}>
+                <Ionicons name="trash-outline" size={32} color="#ff4444" />
+              </View>
+              <Text style={styles.confirmTitle}>Delete Account</Text>
+            </View>
+            <Text style={styles.confirmMessage}>
+              Are you sure you want to delete your account? This action is permanent and cannot be undone.
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                onPress={() => setIsDeleteAccountModalVisible(false)}
+                style={[styles.confirmBtn, styles.cancelBtn]}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmDeleteAccount}
+                disabled={isDeletingAccount}
+                style={[styles.confirmBtn, styles.logoutConfirmBtn]}
+              >
+                {isDeletingAccount ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.logoutConfirmBtnText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -347,18 +430,20 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#fff",
   },
-  logoutButton: {
-    backgroundColor: "rgba(255, 68, 68, 0.15)",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  headerIconBtn: {
+    backgroundColor: "rgba(255, 68, 68, 0.1)",
+    width: 36,
+    height: 36,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(255, 68, 68, 0.3)",
-  },
-  logoutButtonText: {
-    color: "#ff4444",
-    fontSize: 14,
-    fontWeight: "700",
+    justifyContent: "center",
+    alignItems: "center",
   },
   content: {
     flex: 1,

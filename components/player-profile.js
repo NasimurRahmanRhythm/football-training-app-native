@@ -222,12 +222,25 @@ export default function PlayerProfile({
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/${id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${loggedInUser?.token}`,
+        },
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        Alert.alert("Success", "Player deleted successfully.");
-        if (onBack) onBack();
-        else router.back();
+        Alert.alert(
+          "Success",
+          isOwnProfile
+            ? "Your account has been deleted successfully."
+            : "Player deleted successfully.",
+        );
+        if (isOwnProfile) {
+          if (onLogout) onLogout();
+          // Fallback if useAuth isn't injected here, but onLogout is usually provided
+        } else {
+          if (onBack) onBack();
+          else router.back();
+        }
       } else {
         throw new Error(data.message || "Failed to delete player");
       }
@@ -340,7 +353,7 @@ export default function PlayerProfile({
                   <Ionicons name="create-outline" size={20} color="#fff" />
                 </View>
               </TouchableOpacity>
-              {isCoach && (
+              {(isCoach || isOwnProfile) && (
                 <TouchableOpacity
                   onPress={() => setShowDeleteConfirm(true)}
                   style={styles.actionBtn}
@@ -622,8 +635,9 @@ export default function PlayerProfile({
               <Text style={styles.confirmTitle}>Delete Player?</Text>
             </View>
             <Text style={styles.confirmMessage}>
-              Are you sure you want to delete {player.name}? This action cannot
-              be undone.
+              {isOwnProfile
+                ? "Are you sure you want to delete your account? This action cannot be undone."
+                : `Are you sure you want to delete ${player.name}? This action cannot be undone.`}
             </Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity
